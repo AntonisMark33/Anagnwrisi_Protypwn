@@ -6,61 +6,63 @@ This project implements a comprehensive machine learning pipeline to identify se
 ---
 
 ## 📊 Project Overview
-The Piraeus Vice Homicide Division released an anonymized dataset of ~5,000 crime incidents (2019-2024). The objective is to identify **S=8 distinct serial killers** hidden in the data.
+[cite_start]The **Piraeus Vice Homicide Division** has released an anonymized dataset of approximately 5,000 crime incidents spanning the years 2019-2024[cite: 5]. [cite_start]The core objective is to uncover the activity of **$S=8$ distinct serial killers** hidden within this data[cite: 6].
 
-### Features
-- **Continuous (8):** `hour_float`, `latitude`, `longitude`, `victim_age`, `temp_c`, `humidity`, `dist_precinct_km`, `pop_density`.
-- **Categorical (4):** `weapon_code`, `scene_type`, `weather`, `vic_gender` (One-hot encoded).
+### Feature Space
+[cite_start]The data is decomposed into continuous and categorical components [cite: 27-35]:
+- **Continuous ($d_c=8$):** `hour_float`, `latitude`, `longitude`, `victim_age`, `temp_c`, `humidity`, `dist_precinct_km`, `pop_density`.
+- **Categorical ($d_{cat}=17$):** `weapon_code`, `scene_type`, `weather`, `vic_gender` (One-hot encoded).
 
 ---
 
 ## 🏗️ Modeling Pipeline
 
 ### Q1: Exploratory Data Analysis
-- **Gaussian Mixture Models (GMM):** Analyzed `hour_float` distribution. While a single Gaussian provides a baseline, a 3-component GMM captures the multimodal nature of crime times (e.g., night-time peaks).
-- **Spatial Analysis:** Visualized crime density across latitude and longitude.
+- **Gaussian Mixture Models (GMM):** Analyzed the `hour_float` distribution. [cite_start]While a single Gaussian provides a baseline, a 3-component GMM was fitted to capture the multimodal nature of crime times (e.g., distinguishing "morning", "evening", and "late-night" modes)[cite: 111].
+- **Spatial Analysis:** Visualized crime density across latitude and longitude to detect spatial clustering.
 
 ### Q2: Maximum Likelihood Estimation (MLE)
-- Implemented **MLE from scratch** to estimate Gaussian parameters ($\mu_k, \Sigma_k$) for each killer $k$.
-- **Covariance Heatmaps:** Reveal feature correlations specific to each killer's Modus Operandi.
-- **Mahalanobis Ellipses:** Visualized 2D spatial and temporal boundaries containing each killer's activities.
+- [cite_start]**Implementation:** Derived and implemented **MLE from scratch** (using the biased estimator $\frac{1}{N}$) to estimate Gaussian parameters ($\mu_k, \Sigma_k$) for each killer $k$[cite: 126].
+- **Covariance Heatmaps:** Generated to reveal feature correlations specific to each killer's *Modus Operandi*.
+- [cite_start]**Mahalanobis Ellipses:** Visualized 2D spatial boundaries (e.g., Lat/Lon) containing the training points for each killer[cite: 138].
 
 ### Q3: Multiclass Gaussian Bayes Classifier
-- **Generative Approach:** Combined MLE Gaussians with class priors ($\pi_k$) to calculate posterior probabilities $P(K=k | x)$.
-- **Performance:** Achieved **~90.5% Accuracy** on the Validation set.
+- [cite_start]**Generative Approach:** Combined the MLE-derived Gaussians with class priors ($\pi_k$) to calculate the posterior probability $P(K=k | x)$ for each incident[cite: 151].
+- **Decision Boundaries:** Visualized the probabilistic decision regions in the PCA-projected space.
 
-### Q4: Linear Discriminative Models
-- Used **Logistic Regression** with one-hot encoded targets.
-- **Result:** **~93.5% Accuracy**, demonstrating that high-dimensional linear boundaries are highly effective for this dataset.
+### Q4: Linear Discriminative Model
+- **Model:** **Ridge Classifier** (Linear Least Squares).
+- [cite_start]**Rationale:** Trained using **sum-of-squared-errors** on one-hot targets to strictly satisfy the assignment's "Linear Network" requirement.
+- **Performance:** Demonstrates that high-dimensional linear boundaries are highly effective for identifying specific killer signatures.
 
 ### Q5: Support Vector Machines (SVM)
-- Implemented an **RBF-Kernel SVM** with a One-vs-Rest strategy.
-- Visualized non-linear decision regions and support vectors in 2D PCA space.
+- **Model:** Non-linear SVM with an **RBF Kernel**.
+- [cite_start]**Strategy:** Employed a **One-vs-Rest** multiclass strategy[cite: 178].
+- **Visualization:** Plotted non-linear decision regions and highlighted support vectors in the 2D PCA latent space.
 
 ### Q6: Multi-Layer Perceptron (MLP)
-- **Architecture:** 2 hidden layers (64, 32) with ReLU activations and Softmax output.
-- **Feature Importance:** Permutation analysis identified `victim_age` and `humidity` as critical predictors.
+- [cite_start]**Architecture:** Feed-forward neural network with 2 hidden layers (64, 32 units), ReLU activations, and a Softmax output layer[cite: 186].
+- [cite_start]**Feature Importance:** Performed permutation feature importance analysis to identify critical predictors (e.g., `victim_age`, `humidity`) by measuring accuracy drops on the validation set[cite: 190].
 
 ### Q7: Principal Component Analysis (PCA)
-- Reduced feature dimensionality to find the "Modus Operandi" space.
-- Scree plots indicate that the first ~10 components capture the majority of variance.
+- [cite_start]**Dimensionality Reduction:** Standardized features and computed the eigendecomposition to find the "Modus Operandi" space[cite: 200].
+- **Analysis:** Scree plots were generated to determine the optimal number of components ($m$) that explain the majority of the variance.
 
 ### Q8: K-Means Clustering
-- Unsupervised learning in the latent PCA space.
-- Clusters were mapped to killer IDs using majority voting.
-- **Accuracy:** **~83.3%**, showing strong inherent structure even without labels.
+- [cite_start]**Unsupervised Learning:** Applied k-means clustering in the latent PCA space ($m=10$)[cite: 210].
+- [cite_start]**Mapping:** Clusters were mapped to killer IDs using a majority voting scheme on the training set to evaluate unsupervised identification capability[cite: 218].
 
 ---
 
-## 📈 Results Comparison
+## 📈 Performance Summary
 
-| Model | VAL Accuracy | Notes |
+| Model | Type | Key Characteristic |
 | :--- | :---: | :--- |
-| **Linear Classifier** | **93.5%** | Highest performance; efficient. |
-| **Gaussian Bayes** | 90.5% | Strong generative baseline. |
-| **MLP (Neural Net)** | 89.1% | High complexity, good generalization. |
-| **K-Means (Unsupervised)**| 83.3% | Validates natural grouping in MO. |
-| **SVM (RBF)** | 86.5% | Effective non-linear boundaries. |
+| **Gaussian Bayes** | Generative | Probabilistic baseline using MLE parameters. |
+| **Linear (Ridge)** | Discriminative | Minimizes squared error; simple & effective. |
+| **SVM (RBF)** | Discriminative | Captures non-linear boundaries via kernels. |
+| **MLP (Neural Net)** | Non-linear | Learns complex feature interactions. |
+| **K-Means** | Unsupervised | Detects structure without labels. |
 
 ---
 
@@ -69,25 +71,3 @@ The Piraeus Vice Homicide Division released an anonymized dataset of ~5,000 crim
 1. **Install Dependencies:**
    ```bash
    pip install numpy pandas scikit-learn matplotlib seaborn
-   ```
-
-2. **Run Analysis:**
-   ```bash
-   python3 main.py
-   ```
-   This will execute the full pipeline (Q1-Q8), generate all plots, and produce the `submission.csv` file.
-
----
-
-## 📂 File Structure
-- `main.py`: Master execution script.
-- `dataset.py`: Data loading and preprocessing logic.
-- `gaussian_mle.py`: From-scratch implementation of MLE and visualization.
-- `bayes.py`: Gaussian Bayesian Classifier.
-- `q[1-8].py`: Individual task implementations.
-- `*.png`: Visual insights (Decision regions, ellipses, importance, etc.).
-- `submission.csv`: Final predictions and posterior probabilities.
-
----
-**Course:** Pattern Recognition and Machine Learning  
-**Associate Professor:** Dionisios N. Sotiropoulos
